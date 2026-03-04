@@ -25,6 +25,7 @@ from common.djangoapps.third_party_auth import pipeline
 from common.djangoapps.third_party_auth.exceptions import IncorrectConfigurationException
 from common.djangoapps.third_party_auth.saml import SapSuccessFactorsIdentityProvider
 from common.djangoapps.third_party_auth.saml import log as saml_log
+from common.djangoapps.third_party_auth.signals import SocialAuthAccountDisconnected
 from common.djangoapps.third_party_auth.tasks import fetch_saml_metadata
 from common.djangoapps.third_party_auth.tests import testutil, utils
 from common.test.utils import assert_dict_contains_subset
@@ -288,28 +289,35 @@ class TestShibIntegrationTest(SamlIntegrationTestUtilities, IntegrationTestMixin
         FEATURES_WITH_ENTERPRISE_ENABLED = settings.FEATURES.copy()
         FEATURES_WITH_ENTERPRISE_ENABLED["ENABLE_ENTERPRISE_INTEGRATION"] = True
         with patch.dict("django.conf.settings.FEATURES", FEATURES_WITH_ENTERPRISE_ENABLED):
-            # Fire off the disconnect pipeline without the user information.
-            actions.do_disconnect(
-                request.backend, None, None, redirect_field_name=auth.REDIRECT_FIELD_NAME, request=request
-            )
-            assert (
-                EnterpriseCustomerUser.objects.filter(enterprise_customer=enterprise_customer, user_id=user.id).count()
-                != 0
-            )
+            # Track signal emissions to verify the disconnect signal is sent.
+            signal_calls = []
 
-            # Fire off the disconnect pipeline to unlink.
-            self.assert_redirect_after_pipeline_completes(
+            def signal_receiver(sender, **kwargs):
+                signal_calls.append(kwargs)
+
+            SocialAuthAccountDisconnected.connect(signal_receiver)
+            try:
+                # Fire off the disconnect pipeline without the user information.
                 actions.do_disconnect(
-                    request.backend, user, None, redirect_field_name=auth.REDIRECT_FIELD_NAME, request=request
+                    request.backend, None, None, redirect_field_name=auth.REDIRECT_FIELD_NAME, request=request
                 )
-            )
+
+                # Fire off the disconnect pipeline to unlink.
+                self.assert_redirect_after_pipeline_completes(
+                    actions.do_disconnect(
+                        request.backend, user, None, redirect_field_name=auth.REDIRECT_FIELD_NAME, request=request
+                    )
+                )
+            finally:
+                SocialAuthAccountDisconnected.disconnect(signal_receiver)
+
             # Now we expect to be in the unlinked state, with no backend entry.
             self.assert_third_party_accounts_state(request, linked=False)
             self.assert_social_auth_does_not_exist_for_user(user, strategy)
-            assert (
-                EnterpriseCustomerUser.objects.filter(enterprise_customer=enterprise_customer, user_id=user.id).count()
-                == 0
-            )
+            # Verify that the SocialAuthAccountDisconnected signal was emitted.
+            # The actual enterprise user unlinking is handled by edx-enterprise's
+            # signal handler, not by openedx-platform.
+            assert len(signal_calls) == 2, f"Expected 2 signal emissions, got {len(signal_calls)}"
 
     def get_response_data(self):
         """Gets dict (string -> object) of merged data about the user."""
