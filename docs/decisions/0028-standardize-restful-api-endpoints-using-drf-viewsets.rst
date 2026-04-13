@@ -1,16 +1,16 @@
-Standardize RESTful Endpoint Structure Using DRF ViewSets and also port legacy views to DRF endpoints
-=====================================================================================================
+Standardize RESTful Endpoint Structure Using DRF ViewSets
+=========================================================
 
 :Status: Proposed
 :Date: 2026-03-19
 :Deciders: API Working Group
-:Technical Story: Open edX REST API Standards - RESTful endpoint structure standardization using DRF ViewSets and also port legacy views to DRF endpoints
+:Technical Story: Open edX REST API Standards - RESTful endpoint structure standardization using DRF ViewSets
 
 Context
 -------
 
 Many Open edX platform API endpoints are currently implemented as separate, individual
-class-based or function-based (legacy) views for each HTTP action. Instead of using Django REST
+class-based or function-based views for each HTTP action. Instead of using Django REST
 Framework (DRF) ViewSets to group related operations into a single, cohesive class, each
 action (list, retrieve, create, update, delete) is handled by its own standalone view.
 This fragmented approach leads to significant code duplication, inconsistent behavior
@@ -30,11 +30,12 @@ Implementation requirements:
   URL patterns.
 * All ViewSets **MUST** use explicit serializers for both request validation and response
   formatting (per ADR 0025).
+* All ViewSets **MUST** optimize their ``get_queryset`` method using ``select_related`` 
+  and ``prefetch_related`` to match the fields required by their serializers, preventing 
+  N+1 query regressions.
 * Multi-method handler functions (e.g., a single method handling DELETE, POST, and PUT)
   **MUST** be refactored into properly documented, action-specific methods within a
   ViewSet.
-* Legacy views should be migrated to ViewSets. And **APIView** should be used for 
-  non-resource endpoints where ViewSets are not a good fit.
 * Backward compatibility **MUST** be maintained during migration, using
   versioned endpoints or deprecation notices. If a backwards incompatible change is
   required, that change MUST be handled by creating a new version of the API and
@@ -68,12 +69,6 @@ Current patterns that should be migrated:
     separation of concerns.
   * **Resolution:** Refactor into a properly documented ``AssetsViewSet`` with distinct
     action methods.
-
-* **Legacy Django Views** - Many endpoints still use plain Django views instead of DRF:
-  * Hard-coded JSON responses using ``HttpResponse(json.dumps(...))`` instead of serializers
-  * Manual method dispatch instead of DRF mixins and ViewSets
-  * Missing DRF features like automatic authentication, permission classes, and schema generation
-  * Inconsistent error handling and response formats
 
 Illustrative Example
 --------------------
@@ -135,39 +130,6 @@ Full implementation details will be addressed during the migration of each endpo
         def update(self, request, course_key_string, pk): ... # PUT  - update lock state
         def destroy(self, request, course_key_string, pk): ...# DELETE - remove asset
 
-**Before - Legacy Django View:**
-
-.. code-block:: python
-
-    from django.http import JsonResponse, HttpResponse
-    from django.views.decorators.http import require_GET
-
-    @require_GET
-    @login_required
-    def notes(request, course_id):
-        # Manual parsing, no serializer, ad-hoc error shape
-        data = get_notes_data(request.user, course_id)
-        return HttpResponse(json.dumps(data, cls=NoteJSONEncoder),
-                        content_type="application/json")
-
-**After - DRF ViewSet with serializer:**
-
-.. code-block:: python
-
-    from rest_framework import viewsets, serializers
-    from rest_framework.decorators import action
-
-    class NotesViewSet(viewsets.ReadOnlyModelViewSet):
-        serializer_class = NotesSerializer
-        permission_classes = [IsAuthenticated]
-
-        def get_queryset(self):
-            return get_notes_queryset(self.request, self.kwargs["course_id"])
-
-        def list(self, request, *args, **kwargs):
-            serializer = self.get_serializer(self.get_queryset(), many=True)
-            return Response(serializer.data)
-
 Consequences
 ------------
 
@@ -208,17 +170,17 @@ Alternatives Considered
 Rollout Plan
 ------------
 
-1. Audit existing API endpoints to identify all fragmented view patterns and legacy Django
-   views.
+1. Audit existing API endpoints to identify all fragmented view patterns.
 2. Prioritize high-impact resources for migration: Enrollment API, Assets endpoints, and
    any other endpoints identified in the audit.
 3. Refactor identified endpoints into DRF ViewSets, registered via DRF Routers. Ensure
    all ViewSets use explicit serializers per ADR 0025.
-4. Update and expand test coverage to validate correct behavior of all refactored
+4. Include a comparison of SQL query counts to ensure no performance degradation.
+5. Update and expand test coverage to validate correct behavior of all refactored
    ViewSet actions.
-5. Publish deprecation notices for any legacy URL patterns that will be replaced,
+6. Publish deprecation notices for any legacy URL patterns that will be replaced,
    providing clear migration guidance to internal and external API consumers.
-6. Update API documentation to reflect the new ViewSet-based structure and URL patterns.
+7. Update API documentation to reflect the new ViewSet-based structure and URL patterns.
 
 References
 ----------
