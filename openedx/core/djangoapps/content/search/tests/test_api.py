@@ -523,7 +523,7 @@ class TestSearchApi(ModuleStoreTestCase):
 
         def mocked_from_component(lib_key, component):
             # Simulate an error when processing problem 1
-            if component.key == 'xblock.v1:problem:p1':
+            if component.entity_ref == 'xblock.v1:problem:p1':  # TODO follow up
                 raise Exception('Error')
 
             return orig_from_component(lib_key, component)

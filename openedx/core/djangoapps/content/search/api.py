@@ -535,7 +535,7 @@ def rebuild_index(status_cb: Callable[[str], None] | None = None, incremental=Fa
                             doc.update(searchable_doc_containers(container_key, "sections"))
                     docs.append(doc)
                 except Exception as err:  # pylint: disable=broad-except
-                    status_cb(f"Error indexing container {container.key}: {err}")
+                    status_cb(f"Error indexing container {container.entity_ref}: {err}")  # TODO follow up
                 num_done += 1
 
             if docs:

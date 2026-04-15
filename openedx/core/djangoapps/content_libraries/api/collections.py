@@ -132,34 +132,34 @@ def update_library_collection_items(
     for opaque_key in opaque_keys:
         if isinstance(opaque_key, LibraryContainerLocator):
             try:
-                container = content_api.get_container_by_key(
+                container = content_api.get_container_by_ref(
                     content_library.learning_package_id,
-                    key=opaque_key.container_id,
+                    entity_ref=opaque_key.container_id,  # TODO follow up
                 )
             except Collection.DoesNotExist as exc:
                 raise ContentLibraryContainerNotFound(opaque_key) from exc
 
-            item_keys.append(container.key)
+            item_keys.append(container.entity_ref)  # TODO follow up
         elif isinstance(opaque_key, UsageKeyV2):
             # Parse the block_family from the key to use as namespace.
             block_type = BlockTypeKey.from_string(str(opaque_key))
             try:
-                component = content_api.get_component_by_key(
+                component = content_api.get_component_by_code(
                     content_library.learning_package_id,
                     namespace=block_type.block_family,
                     type_name=opaque_key.block_type,
-                    local_key=opaque_key.block_id,
+                    component_code=opaque_key.block_id,
                 )
             except Component.DoesNotExist as exc:
                 raise ContentLibraryBlockNotFound(opaque_key) from exc
 
-            item_keys.append(component.key)
+            item_keys.append(component.entity_ref)  # TODO follow up
         else:
             # This should never happen, but just in case.
             raise ValueError(f"Invalid opaque_key: {opaque_key}")
 
     entities_qset = PublishableEntity.objects.filter(
-        key__in=item_keys,
+        entity_ref__in=item_keys,  # TODO follow up
     )
 
     if remove:
@@ -207,9 +207,9 @@ def set_library_item_collections(
     assert content_library.learning_package_id
     assert content_library.library_key == library_key
 
-    publishable_entity = content_api.get_publishable_entity_by_key(
+    publishable_entity = content_api.get_publishable_entity_by_ref(
         content_library.learning_package_id,
-        key=entity_key,
+        entity_ref=entity_key,  # TODO follow up
     )
 
     # Note: Component.key matches its PublishableEntity.key

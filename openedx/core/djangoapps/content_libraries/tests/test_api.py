@@ -320,7 +320,7 @@ class ContentLibraryCollectionsTest(ContentLibrariesRestApiTest):
         component = api.get_component_from_usage_key(UsageKeyV2.from_string(self.lib2_problem_block["id"]))
         api.set_library_item_collections(
             library_key=self.lib2.library_key,
-            entity_key=component.publishable_entity.key,
+            entity_key=component.publishable_entity.entity_ref,  # TODO follow up
             collection_keys=[self.col2.collection_code, self.col3.collection_code],
         )
 
