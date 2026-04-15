@@ -176,7 +176,7 @@ def _migration(m: models.ModulestoreMigration) -> ModulestoreMigration:
     return ModulestoreMigration(
         pk=m.id,
         source_key=m.source.key,
-        target_key=LibraryLocatorV2.from_string(m.target.key),
+        target_key=LibraryLocatorV2.from_string(m.target.package_ref),
         target_title=m.target.title,
         target_collection_slug=(m.target_collection.key if m.target_collection else None),
         target_collection_title=(m.target_collection.title if m.target_collection else None),
@@ -209,7 +209,7 @@ def _block_migration_success(
     """
     Build an instance of the migration success dataclass
     """
-    target_library_key = LibraryLocatorV2.from_string(target.learning_package.key)
+    target_library_key = LibraryLocatorV2.from_string(target.learning_package.package_ref)
     target_key: LibraryUsageLocatorV2 | LibraryContainerLocator
     if hasattr(target, "component"):
         target_key = library_component_usage_key(target_library_key, target.component)
