@@ -191,7 +191,7 @@ class OpenedXContentRuntime(XBlockRuntime):
             raise NoSuchUsage(usage_key)
 
         content = component_version.media.get(
-            componentversionmedia__key="block.xml"
+            componentversionmedia__path="block.xml"
         )
         xml_node = etree.fromstring(content.text)
         block_type = usage_key.block_type
@@ -251,13 +251,13 @@ class OpenedXContentRuntime(XBlockRuntime):
             .componentversionmedia_set
             .filter(media__has_file=True)
             .select_related('media')
-            .order_by('key')
+            .order_by('path')
         )
 
         return [
             StaticFile(
-                name=cvm.key,
-                url=self._absolute_url_for_asset(component_version, cvm.key),
+                name=cvm.path,
+                url=self._absolute_url_for_asset(component_version, cvm.path),
                 data=cvm.media.read_file().read() if fetch_asset_data else None,
             )
             for cvm in cvm_list
@@ -447,7 +447,7 @@ class OpenedXContentRuntime(XBlockRuntime):
                 component_version
                 .componentversionmedia_set
                 .filter(media__has_file=True)
-                .get(key=f"static/{asset_path}")
+                .get(path=f"static/{asset_path}")
             )
         except ObjectDoesNotExist:
             try:
@@ -458,7 +458,7 @@ class OpenedXContentRuntime(XBlockRuntime):
                     component_version
                     .componentversionmedia_set
                     .filter(media__has_file=True)
-                    .get(key=f"static/{asset_path}")
+                    .get(path=f"static/{asset_path}")
                 )
             except ObjectDoesNotExist:
                 # This means we see a path that _looks_ like it should be a static
