@@ -571,7 +571,7 @@ class ContentLibrariesEventsTestCase(ContentLibrariesRestApiTest):
         """ Test basic create, update, and delete events for collections """
         collection = self._create_collection(self.lib1_key, "Test Collection")
         # To fix? The response from _create_collection should have the opaque key as the "id" field, not an integer.
-        collection_key = LibraryCollectionLocator(lib_key=self.lib1_key, collection_id=collection["key"])
+        collection_key = LibraryCollectionLocator(lib_key=self.lib1_key, collection_id=collection["collection_code"])
         self.expect_new_events({
             "signal": LIBRARY_COLLECTION_CREATED,
             "library_collection": LibraryCollectionData(collection_key),

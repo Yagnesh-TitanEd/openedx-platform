@@ -178,7 +178,7 @@ def _migration(m: models.ModulestoreMigration) -> ModulestoreMigration:
         source_key=m.source.key,
         target_key=LibraryLocatorV2.from_string(m.target.package_ref),
         target_title=m.target.title,
-        target_collection_slug=(m.target_collection.key if m.target_collection else None),
+        target_collection_slug=(m.target_collection.collection_code if m.target_collection else None),
         target_collection_title=(m.target_collection.title if m.target_collection else None),
         is_failed=m.is_failed,
         task_uuid=m.task_status.uuid,

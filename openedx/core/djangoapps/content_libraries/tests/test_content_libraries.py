@@ -1930,7 +1930,7 @@ class ContentLibrariesRestAPIAuthzIntegrationTestCase(ContentLibrariesRestApiTes
                     self.lib_id,
                     title=f"Temp Collection {user.username}",
                     expect_response=status.HTTP_200_OK)
-                collection_id = collection_data["key"]
+                collection_id = collection_data["collection_code"]
                 collection_key = LibraryCollectionLocator(lib_key=library_key, collection_id=collection_id)
                 # Update collection
                 self._update_collection(collection_key, title="Updated Collection", expect_response=status.HTTP_200_OK)
@@ -1945,7 +1945,7 @@ class ContentLibrariesRestAPIAuthzIntegrationTestCase(ContentLibrariesRestApiTes
             self.lib_id,
             title="New Temp Collection",
             expect_response=status.HTTP_200_OK)
-        collection_id = collection_data["key"]
+        collection_id = collection_data["collection_code"]
         collection_key = LibraryCollectionLocator(lib_key=library_key, collection_id=collection_id)
 
         for user in self._all_users_excluding(self.library_collection_editors):
